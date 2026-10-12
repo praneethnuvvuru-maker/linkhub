@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Linkhub editor</title>
+<style>
+:root{--bg:#f3f1fa;--panel:#fff;--ink:#1d1a2e;--mute:#6d6985;--line:#dedaee;--acc:#5b3df5;--accink:#fff;--danger:#c0264b}
+@media (prefers-color-scheme:dark){:root{--bg:#14121f;--panel:#1d1a2e;--ink:#f0eefb;--mute:#9a96b5;--line:#322e4a;--acc:#8d78ff;--accink:#14121f;--danger:#ff7a98}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:32px;max-width:1040px;margin:0 auto;padding:24px 20px 60px}
+@media(max-width:860px){.app{grid-template-columns:1fr}.pv{order:-1;position:static!important}}
+header.top{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{font-weight:800;font-size:26px;letter-spacing:-.03em}.logo i{font-style:normal;color:var(--acc)}
+.tabs{display:flex;gap:4px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:16px;width:max-content;max-width:100%}
+.tabs button{border:0;background:none;padding:8px 16px;border-radius:9px;cursor:pointer;color:var(--mute);font-weight:600}
+.tabs button[aria-selected=true]{background:var(--acc);color:var(--accink)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:12px}
+.btn{border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:600;text-decoration:none;display:inline-block}
+.btn.pri{background:var(--acc);color:var(--accink);border-color:var(--acc)}
+.btn.sm{padding:4px 9px;font-size:13px}.btn.del{color:var(--danger)}.btn:disabled{opacity:.35;cursor:default}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+label.f{display:block;font-weight:600;font-size:13px;color:var(--mute);margin:10px 0 4px}
+input[type=text],input[type=url],textarea,select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+textarea{resize:vertical;min-height:64px}
+input[type=date]{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+input[type=color]{width:56px;height:36px;padding:2px;border:1px solid var(--line);border-radius:8px;background:none}
+img.av{object-fit:cover}.socials{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}.so{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;background:var(--pbtn);color:var(--pbtnt);font-weight:700;font-size:12px}
+.pl span{margin-right:8px}.pl.star{animation:pulse 1.6s infinite}@keyframes pulse{50%{transform:scale(1.04)}}
+.vid{width:100%;aspect-ratio:16/9;border-radius:14px;background:#0006;display:grid;place-items:center;font-weight:600}
+.subp{display:flex;gap:6px;width:100%}.subp i{flex:1;border:2px solid var(--pbtn);border-radius:999px;padding:9px;opacity:.6;font-style:normal}.subp b{background:var(--pbtn);color:var(--pbtnt);border-radius:999px;padding:9px 14px}
+.lk{display:grid;gap:8px}.lk .head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.badge{font-size:13px;color:var(--mute)}
+.sw{display:flex;gap:10px;flex-wrap:wrap}
+.sw button{width:64px;height:64px;border-radius:14px;border:3px solid transparent;cursor:pointer;font-size:12px;font-weight:600}
+.sw button[aria-pressed=true]{border-color:var(--acc)}
+.seg{display:flex;gap:6px;flex-wrap:wrap}
+.seg button{border:1px solid var(--line);background:var(--panel);padding:7px 13px;border-radius:10px;cursor:pointer}
+.seg button[aria-pressed=true]{background:var(--acc);color:var(--accink);border-color:var(--acc)}
+.stat{display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)}
+.bar{height:6px;background:var(--acc);border-radius:3px;margin-top:4px}
+.empty{color:var(--mute);text-align:center;padding:20px}
+.pv{position:sticky;top:20px;align-self:start}
+.phone{border:10px solid #15131f;border-radius:42px;height:640px;overflow:auto;background:#fff}
+.page{min-height:100%;padding:44px 22px 28px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:12px}
+.av{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;font-size:40px;background:var(--pbtn);color:var(--pbtnt)}
+.page h1{margin:6px 0 0;font-size:22px;letter-spacing:-.02em}.page .h{opacity:.75;margin:-6px 0 6px}
+.page p{margin:0 0 8px;max-width:30ch}.page h2{font-size:13px;margin:10px 0 0;opacity:.8;font-weight:600}
+.pl{display:block;width:100%;padding:14px 16px;font-weight:600;text-decoration:none;border:2px solid var(--pbtn);background:var(--pbtn);color:var(--pbtnt);transition:transform .12s}
+.pl:hover{transform:scale(1.02)}.pl.outline{background:transparent;color:var(--pbtn)}
+.pl.soft{background:color-mix(in srgb,var(--pbtn) 16%,transparent);color:var(--ptxt);border-color:transparent}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-weight:600;z-index:9}
+#state{font-size:13px;color:var(--mute)}
+@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div id="root"><p style="padding:24px">Loading…</p></div>
+<script>
+const THEMES={
+ meadow:{n:'Meadow',bg:'linear-gradient(160deg,#e6f0cf,#c9e0b0)',txt:'#1d2b17',btn:'#1d2b17',bt:'#eef6dc'},
+ dusk:{n:'Dusk',bg:'linear-gradient(160deg,#2a2150,#4a2d6e)',txt:'#f2edff',btn:'#f2edff',bt:'#2a2150'},
+ sunset:{n:'Sunset',bg:'linear-gradient(160deg,#ffc79a,#ff7f93)',txt:'#3a0f20',btn:'#fff',bt:'#3a0f20'},
+ paper:{n:'Paper',bg:'#f5f2ec',txt:'#161616',btn:'#161616',bt:'#f5f2ec'},
+ sea:{n:'Sea',bg:'linear-gradient(160deg,#0c3640,#12565a)',txt:'#e4fbf6',btn:'#5de0c8',bt:'#0c3640'}
+};
+const RADII={pill:'999px',round:'14px',square:'0'};
+let S,tab='links',timer;
+const $=(t,a={},...k)=>{const e=document.createElement(t);for(const[x,v]of Object.entries(a)){if(x==='class')e.className=v;else if(x.startsWith('on'))e.addEventListener(x.slice(2),v);else if(v===true)e.setAttribute(x,'');else if(v!==false&&v!=null)e.setAttribute(x,v)}k.flat().forEach(c=>e.append(c instanceof Node?c:document.createTextNode(c)));return e};
+const pubUrl=()=>location.origin+'/'+S.username;
+function toast(m){const t=$('div',{class:'toast',role:'status'},m);document.body.append(t);setTimeout(()=>t.remove(),1800)}
+function setState(m){const e=document.getElementById('state');if(e)e.textContent=m}
+function save(){
+ setState('Saving…');clearTimeout(timer);
+ timer=setTimeout(async()=>{
+  try{const r=await fetch('/api/me',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)});if(!r.ok)throw 0;setState('All changes saved')}
+  catch(e){setState('Not saved. Check your connection.')}
+ },500);
+}
+function safeUrl(u){u=(u||'').trim();if(!u)return null;if(!/^[a-z][a-z0-9+.-]*:/i.test(u))u='https://'+u;return /^(https?:|mailto:)/i.test(u)?u:null}
+const FONTS={sans:'system-ui,sans-serif',serif:'Georgia,serif',mono:'ui-monospace,Menlo,monospace',round:'ui-rounded,"Trebuchet MS",sans-serif'};
+const SOCIALS={ig:['IG','Instagram','username'],yt:['YT','YouTube','channel link or @name'],x:['X','X (Twitter)','username'],tiktok:['TT','TikTok','username'],linkedin:['in','LinkedIn','profile link or name'],github:['GH','GitHub','username'],whatsapp:['WA','WhatsApp','number with country code'],email:['@','Email','you@example.com']};
+const themeOf=()=>S.theme==='custom'?S.custom:(THEMES[S.theme]||THEMES.meadow);
+function pageEl(){
+ const t=themeOf(),td=new Date().toISOString().slice(0,10),p=$('div',{class:'page'});
+ p.style.cssText=`background:${t.bg};color:${t.txt};--pbtn:${t.btn};--pbtnt:${t.bt};--ptxt:${t.txt};font-family:${FONTS[S.font]||FONTS.sans}`;
+ p.append(/^https:\/\//.test(S.photo)?$('img',{class:'av',src:S.photo,alt:''}):$('div',{class:'av','aria-hidden':'true'},S.avatar||'🙂'),$('h1',{},S.display||S.username),$('div',{class:'h'},'@'+S.username));
+ if(S.bio)p.append($('p',{},S.bio));
+ const so=Object.entries(SOCIALS).filter(([k])=>S.socials[k]);
+ if(so.length)p.append($('div',{class:'socials'},so.map(([k,v])=>$('span',{class:'so','aria-label':v[1]},v[0]))));
+ const vis=S.links.filter(l=>l.on&&l.title&&!(l.start&&td<l.start)&&!(l.end&&td>l.end));
+ if(!vis.length)p.append($('p',{},'No links yet.'));
+ vis.forEach(l=>{
+  if(l.type==='heading'){p.append($('h2',{},l.title));return}
+  const href=safeUrl(l.url);
+  if(l.type==='video'){p.append($('div',{class:'vid'},'▶ '+l.title));return}
+  const a=$('a',{class:'pl '+S.fill+(l.star?' star':''),href:href||'#',target:'_blank',rel:'noopener noreferrer',onclick:ev=>{if(!href)ev.preventDefault()}},l.icon?$('span',{},l.icon):'',l.title);
+  a.style.borderRadius=RADII[S.shape]||RADII.pill;
+  p.append(a);
+ });
+ if(S.subscribe)p.append($('div',{class:'subp'},$('i',{},'Your email'),$('b',{},S.subText||'Subscribe')));
+ return p;
+}
+function render(){
+ const root=document.getElementById('root');root.replaceChildren();
+ const app=$('div',{class:'app'});
+ app.append($('header',{class:'top'},$('div',{class:'logo'},'link',$('i',{},'hub')),
+  $('div',{class:'row'},$('span',{id:'state'},'All changes saved'),
+   $('a',{class:'btn',href:'/'+S.username,target:'_blank',rel:'noopener'},'Open my page'),
+   $('button',{class:'btn pri',onclick:copyLink},'Copy my link'),
+   $('a',{class:'btn',href:'/logout'},'Log out'))));
+ const main=$('main');
+ const tabs=$('div',{class:'tabs',role:'tablist'});
+ [['links','Links'],['profile','Profile'],['look','Appearance'],['aud','Audience'],['stats','Stats']].forEach(([k,n])=>tabs.append($('button',{role:'tab','aria-selected':String(tab===k),onclick:()=>{tab=k;render();if(k==='stats'||k==='aud')refreshStats()}},n)));
+ main.append(tabs,$('div',{id:'panel'}));
+ app.append(main,$('aside',{class:'pv'},$('div',{class:'phone',id:'phone','aria-label':'Live preview'},pageEl())));
+ root.append(app);renderMain();
+}
+async function copyLink(){
+ try{await navigator.clipboard.writeText(pubUrl());toast('Link copied: '+pubUrl())}
+ catch(e){prompt('Copy your link:',pubUrl())}
+}
+function renderPreview(){const ph=document.getElementById('phone');if(ph){const y=ph.scrollTop;ph.replaceChildren(pageEl());ph.scrollTop=y}}
+function change(fn){fn();save();renderPreview()}
+function renderMain(){const p=document.getElementById('panel');p.replaceChildren();({links:linksTab,profile:profileTab,look:lookTab,aud:audTab,stats:statsTab})[tab](p)}
+function field(label,el){return $('div',{},$('label',{class:'f'},label),el)}
+function linksTab(p){
+ p.append($('div',{class:'row',style:'margin-bottom:12px'},
+  $('button',{class:'btn pri',onclick:()=>add('link')},'Add link'),
+  $('button',{class:'btn',onclick:()=>add('heading')},'Add heading'),
+  $('button',{class:'btn',onclick:()=>add('video')},'Add video')));
+ if(!S.links.length)p.append($('div',{class:'empty'},'Add your first link to get started.'));
+ S.links.forEach((l,i)=>{
+  const c=$('div',{class:'card lk'}),isL=l.type!=='heading';
+  c.append($('div',{class:'head'},
+   $('span',{class:'badge'},isL?`${l.type==='video'?'Video':'Link'} · ${l.clicks||0} clicks`:'Heading'),
+   $('div',{class:'row'},
+    $('label',{class:'badge'},$('input',{type:'checkbox',checked:l.on,onchange:e=>change(()=>l.on=e.target.checked)}),' Visible'),
+    $('button',{class:'btn sm','aria-label':'Move up',disabled:i===0,onclick:()=>move(i,-1)},'↑'),
+    $('button',{class:'btn sm','aria-label':'Move down',disabled:i===S.links.length-1,onclick:()=>move(i,1)},'↓'),
+    $('button',{class:'btn sm del',onclick:()=>{S.links.splice(i,1);save();render()}},'Delete'))));
+  c.append($('input',{type:'text','aria-label':'Title',placeholder:isL?'Link title':'Heading text',value:l.title,maxlength:60,oninput:e=>change(()=>l.title=e.target.value)}));
+  if(isL){
+   c.append($('input',{type:'url','aria-label':'URL',placeholder:l.type==='video'?'YouTube video link':'https://…',value:l.url||'',oninput:e=>change(()=>l.url=e.target.value)}));
+   if(l.type==='link')c.append($('div',{class:'row'},
+    $('input',{type:'text','aria-label':'Icon emoji',placeholder:'Icon 🔗',value:l.icon||'',maxlength:4,style:'width:90px',oninput:e=>change(()=>l.icon=e.target.value)}),
+    $('label',{class:'badge'},$('input',{type:'checkbox',checked:!!l.star,onchange:e=>change(()=>l.star=e.target.checked)}),' Highlight (pulses)')));
+   c.append($('div',{class:'row'},$('label',{class:'badge'},'Show from ',$('input',{type:'date',value:l.start||'',onchange:e=>change(()=>l.start=e.target.value)})),
+    $('label',{class:'badge'},'until ',$('input',{type:'date',value:l.end||'',onchange:e=>change(()=>l.end=e.target.value)}))));
+  }
+  p.append(c);
+ });
+}
+function add(type){S.links.push({id:Date.now().toString(36),type,title:'',url:'',on:true,clicks:0});save();render();
+ const ins=document.querySelectorAll('.lk input[aria-label=Title]');ins[ins.length-1]?.focus()}
+function move(i,d){const j=i+d;[S.links[i],S.links[j]]=[S.links[j],S.links[i]];save();render()}
+function lookTab(p){
+ const th=$('div',{class:'sw'});
+ Object.entries(THEMES).forEach(([k,t])=>th.append($('button',{'aria-pressed':String(S.theme===k),style:`background:${t.bg};color:${t.txt}`,onclick:()=>{S.theme=k;save();render()}},t.n)));
+ th.append($('button',{'aria-pressed':String(S.theme==='custom'),style:'background:var(--bg)',onclick:()=>{S.theme='custom';save();render()}},'Custom'));
+ const seg=(key,opts)=>{const d=$('div',{class:'seg'});opts.forEach(([v,n])=>d.append($('button',{'aria-pressed':String(S[key]===v),onclick:()=>{S[key]=v;save();render()}},n)));return d};
+ const col=(k,n)=>$('label',{class:'badge'},n+' ',$('input',{type:'color',value:S.custom[k],oninput:e=>change(()=>S.custom[k]=e.target.value)}));
+ p.append($('div',{class:'card'},$('label',{class:'f'},'Theme'),th,
+  S.theme==='custom'?$('div',{class:'row',style:'margin-top:12px'},col('bg','Background'),col('txt','Text'),col('btn','Buttons'),col('bt','Button text')):''),
+  $('div',{class:'card'},$('label',{class:'f'},'Button style'),seg('fill',[['solid','Solid'],['outline','Outline'],['soft','Soft']]),
+   $('label',{class:'f'},'Button shape'),seg('shape',[['pill','Pill'],['round','Rounded'],['square','Square']]),
+   $('label',{class:'f'},'Font'),seg('font',[['sans','Sans'],['serif','Serif'],['mono','Mono'],['round','Rounded']])),
+  $('div',{class:'card'},$('label',{class:'badge'},$('input',{type:'checkbox',checked:!!S.hideBrand,onchange:e=>change(()=>S.hideBrand=e.target.checked)}),' Hide the "Make your own Linkhub" footer')));
+}
+function profileTab(p){
+ const inp=(k,ph,max)=>$('input',{type:'text',placeholder:ph||'',value:S[k]||'',maxlength:max,oninput:e=>change(()=>S[k]=e.target.value)});
+ const soc=$('div',{class:'card'},$('label',{class:'f'},'Social icons (shown under your bio)'));
+ Object.entries(SOCIALS).forEach(([k,v])=>soc.append($('div',{},$('label',{class:'f'},v[1]),$('input',{type:'text',placeholder:v[2],value:S.socials[k]||'',maxlength:100,oninput:e=>change(()=>S.socials[k]=e.target.value)}))));
+ p.append($('div',{class:'card'},field('Display name',inp('display','',40)),field('Avatar emoji',inp('avatar','',4)),
+  field('Profile photo link (optional, https)',inp('photo','https://…/me.jpg',500)),
+  field('Bio',$('textarea',{maxlength:160,oninput:e=>change(()=>S.bio=e.target.value)},S.bio))),soc);
+}
+function audTab(p){
+ p.append($('div',{class:'card'},
+  $('label',{class:'badge'},$('input',{type:'checkbox',checked:!!S.subscribe,onchange:e=>change(()=>S.subscribe=e.target.checked)}),' Show an email signup form on my page'),
+  field('Button text',$('input',{type:'text',value:S.subText||'Subscribe',maxlength:30,oninput:e=>change(()=>S.subText=e.target.value)}))),
+  $('div',{class:'card'},$('div',{class:'stat'},$('b',{},'Subscribers'),$('b',{},String(S.subsCount||0))),
+   $('div',{style:'margin-top:12px'},$('a',{class:'btn',href:'/api/subs.csv'},'Download list (CSV)'))));
+}
+async function refreshStats(){
+ try{const r=await fetch('/api/me');const d=await r.json();S.views=d.views;S.daily=d.daily||{};S.subsCount=d.subsCount||0;
+  d.links.forEach(n=>{const l=S.links.find(x=>x.id===n.id);if(l)l.clicks=n.clicks});
+  if(tab==='stats'||tab==='aud')renderMain()}catch(e){}
+}
+function statsTab(p){
+ const ls=S.links.filter(l=>l.type!=='heading'&&l.type!=='video');
+ const tot=ls.reduce((a,l)=>a+(l.clicks||0),0),mx=Math.max(1,...ls.map(l=>l.clicks||0));
+ const days=[...Array(7)].map((_,i)=>{const d=new Date(Date.now()-(6-i)*864e5).toISOString().slice(0,10);const e=(S.daily||{})[d]||{v:0,c:0};return{d:d.slice(5),v:e.v,c:e.c}});
+ const mv=Math.max(1,...days.map(x=>x.v));
+ const ctr=S.views?Math.round(tot/S.views*100):0;
+ const c=$('div',{class:'card'},
+  $('div',{class:'stat'},$('b',{},'Page views'),$('b',{},String(S.views||0))),
+  $('div',{class:'stat'},$('b',{},'Total link clicks'),$('b',{},String(tot))),
+  $('div',{class:'stat'},$('b',{},'Click rate'),$('b',{},ctr+'%')));
+ const w=$('div',{class:'card'},$('label',{class:'f'},'Last 7 days'));
+ days.forEach(x=>w.append($('div',{style:'padding:5px 0'},$('div',{class:'row',style:'justify-content:space-between;flex-wrap:nowrap'},$('span',{class:'badge'},x.d),$('span',{class:'badge'},x.v+' views · '+x.c+' clicks')),$('div',{class:'bar',style:`width:${x.v/mv*100}%`}))));
+ const l2=$('div',{class:'card'},$('label',{class:'f'},'Clicks per link'));
+ if(!ls.length)l2.append($('div',{class:'empty'},'No links to track yet.'));
+ ls.forEach(l=>l2.append($('div',{style:'padding:8px 0'},$('div',{class:'row',style:'justify-content:space-between;flex-wrap:nowrap'},$('span',{},l.title||'Untitled'),$('b',{},String(l.clicks||0))),$('div',{class:'bar',style:`width:${(l.clicks||0)/mx*100}%`}))));
+ p.append(c,w,l2);
+}
+(async()=>{
+ try{const r=await fetch('/api/me');if(r.status===401){location.href='/';return}S=await r.json();S.fill=S.fill||'solid';S.shape=S.shape||'pill';S.socials=S.socials||{};S.custom=S.custom||{bg:'#ffffff',txt:'#111111',btn:'#111111',bt:'#ffffff'};S.font=S.font||'sans';S.photo=S.photo||'';render()}
+ catch(e){document.getElementById('root').textContent='Could not load. Refresh the page.'}
+})();
+</script>
+</body>
+</html>
