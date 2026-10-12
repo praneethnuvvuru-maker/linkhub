@@ -24,7 +24,7 @@ header.top{grid-column:1/-1;display:flex;align-items:center;justify-content:spac
 .btn.sm{padding:4px 9px;font-size:13px}.btn.del{color:var(--danger)}.btn:disabled{opacity:.35;cursor:default}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 label.f{display:block;font-weight:600;font-size:13px;color:var(--mute);margin:10px 0 4px}
-input[type=text],input[type=url],textarea,select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+input[type=text],input[type=url],input[type=password],textarea,select{width:100%;padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
 textarea{resize:vertical;min-height:64px}
 input[type=date]{padding:6px 8px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
 input[type=color]{width:56px;height:36px;padding:2px;border:1px solid var(--line);border-radius:8px;background:none}
@@ -81,6 +81,7 @@ function save(){
  },500);
 }
 function safeUrl(u){u=(u||'').trim();if(!u)return null;if(!/^[a-z][a-z0-9+.-]*:/i.test(u))u='https://'+u;return /^(https?:|mailto:)/i.test(u)?u:null}
+const SRCN={instagram:'Instagram',tiktok:'TikTok',youtube:'YouTube',x:'X',facebook:'Facebook',whatsapp:'WhatsApp',linkedin:'LinkedIn',reddit:'Reddit',direct:'Direct / unknown',other:'Other websites'};
 const FONTS={sans:'system-ui,sans-serif',serif:'Georgia,serif',mono:'ui-monospace,Menlo,monospace',round:'ui-rounded,"Trebuchet MS",sans-serif'};
 const SOCIALS={ig:['IG','Instagram','username'],yt:['YT','YouTube','channel link or @name'],x:['X','X (Twitter)','username'],tiktok:['TT','TikTok','username'],linkedin:['in','LinkedIn','profile link or name'],github:['GH','GitHub','username'],whatsapp:['WA','WhatsApp','number with country code'],email:['@','Email','you@example.com']};
 const themeOf=()=>S.theme==='custom'?S.custom:(THEMES[S.theme]||THEMES.meadow);
@@ -91,7 +92,7 @@ function pageEl(){
  if(S.bio)p.append($('p',{},S.bio));
  const so=Object.entries(SOCIALS).filter(([k])=>S.socials[k]);
  if(so.length)p.append($('div',{class:'socials'},so.map(([k,v])=>$('span',{class:'so','aria-label':v[1]},v[0]))));
- const vis=S.links.filter(l=>l.on&&l.title&&!(l.start&&td<l.start)&&!(l.end&&td>l.end));
+ const vis=S.links.filter(l=>l.on&&l.title&&!(l.start&&td<l.start)&&!(l.end&&td>l.end)&&!(S.autoHide&&l.health&&l.health.s==='bad'&&l.health.fails>=2));
  if(!vis.length)p.append($('p',{},'No links yet.'));
  vis.forEach(l=>{
   if(l.type==='heading'){p.append($('h2',{},l.title));return}
@@ -114,7 +115,7 @@ function render(){
    $('a',{class:'btn',href:'/logout'},'Log out'))));
  const main=$('main');
  const tabs=$('div',{class:'tabs',role:'tablist'});
- [['links','Links'],['profile','Profile'],['look','Appearance'],['aud','Audience'],['stats','Stats']].forEach(([k,n])=>tabs.append($('button',{role:'tab','aria-selected':String(tab===k),onclick:()=>{tab=k;render();if(k==='stats'||k==='aud')refreshStats()}},n)));
+ [['links','Links'],['profile','Profile'],['look','Appearance'],['aud','Audience'],['stats','Stats'],['tools','Tools']].forEach(([k,n])=>tabs.append($('button',{role:'tab','aria-selected':String(tab===k),onclick:()=>{tab=k;render();if(k==='stats'||k==='aud'||k==='links')refreshStats()}},n)));
  main.append(tabs,$('div',{id:'panel'}));
  app.append(main,$('aside',{class:'pv'},$('div',{class:'phone',id:'phone','aria-label':'Live preview'},pageEl())));
  root.append(app);renderMain();
@@ -125,9 +126,31 @@ async function copyLink(){
 }
 function renderPreview(){const ph=document.getElementById('phone');if(ph){const y=ph.scrollTop;ph.replaceChildren(pageEl());ph.scrollTop=y}}
 function change(fn){fn();save();renderPreview()}
-function renderMain(){const p=document.getElementById('panel');p.replaceChildren();({links:linksTab,profile:profileTab,look:lookTab,aud:audTab,stats:statsTab})[tab](p)}
+function renderMain(){const p=document.getElementById('panel');p.replaceChildren();({links:linksTab,profile:profileTab,look:lookTab,aud:audTab,stats:statsTab,tools:toolsTab})[tab](p)}
 function field(label,el){return $('div',{},$('label',{class:'f'},label),el)}
+function healthTag(l){
+ const u=safeUrl(l.url);if(!u||!/^https?:/i.test(u))return '';
+ const h=l.health;if(!h)return $('span',{class:'badge'},' · Not checked yet');
+ const m={ok:['#1a8f4c','Working'],bad:['var(--danger)',h.code?`Broken (${h.code})`:'Unreachable'],unknown:['var(--mute)','Can\u2019t verify']}[h.s];
+ return $('span',{style:`color:${m[0]};font-weight:600`},' · ● '+m[1]);
+}
+function healthCard(){
+ const ls=S.links.filter(l=>l.type!=='heading'&&l.health),bad=ls.filter(l=>l.health.s==='bad');
+ const msg=!ls.length?'Links are checked automatically after you add or change them.':bad.length?`${bad.length} link${bad.length>1?'s':''} may be broken. Fix them before visitors hit a dead end.`:'All checked links are working.';
+ return $('div',{class:'card'},$('b',{},'Link health'),$('p',{class:'badge',style:'margin:4px 0 10px'},msg),
+  $('div',{class:'row'},$('button',{class:'btn',id:'chk',onclick:checkNow},'Check all now'),
+   $('label',{class:'badge'},$('input',{type:'checkbox',checked:!!S.autoHide,onchange:e=>change(()=>S.autoHide=e.target.checked)}),' Hide broken links from visitors automatically')));
+}
+async function checkNow(){
+ const b=document.getElementById('chk');b.disabled=true;b.textContent='Checking…';
+ try{clearTimeout(timer);await fetch('/api/me',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(S)});
+  const r=await fetch('/api/check',{method:'POST'});if(r.status===429)toast('Wait a few seconds and try again');else merge(await r.json())}
+ catch(e){toast('Check failed')}
+ render();renderPreview();
+}
+function merge(d){S.views=d.views;S.daily=d.daily||{};S.src=d.src||{};S.subsCount=d.subsCount||0;d.links.forEach(n=>{const l=S.links.find(x=>x.id===n.id);if(l){l.clicks=n.clicks;l.health=n.health}})}
 function linksTab(p){
+ p.append(healthCard());
  p.append($('div',{class:'row',style:'margin-bottom:12px'},
   $('button',{class:'btn pri',onclick:()=>add('link')},'Add link'),
   $('button',{class:'btn',onclick:()=>add('heading')},'Add heading'),
@@ -136,7 +159,7 @@ function linksTab(p){
  S.links.forEach((l,i)=>{
   const c=$('div',{class:'card lk'}),isL=l.type!=='heading';
   c.append($('div',{class:'head'},
-   $('span',{class:'badge'},isL?`${l.type==='video'?'Video':'Link'} · ${l.clicks||0} clicks`:'Heading'),
+   $('span',{class:'badge'},$('span',{},isL?`${l.type==='video'?'Video':'Link'} · ${l.clicks||0} clicks`:'Heading',isL?healthTag(l):'')),
    $('div',{class:'row'},
     $('label',{class:'badge'},$('input',{type:'checkbox',checked:l.on,onchange:e=>change(()=>l.on=e.target.checked)}),' Visible'),
     $('button',{class:'btn sm','aria-label':'Move up',disabled:i===0,onclick:()=>move(i,-1)},'↑'),
@@ -150,6 +173,8 @@ function linksTab(p){
     $('label',{class:'badge'},$('input',{type:'checkbox',checked:!!l.star,onchange:e=>change(()=>l.star=e.target.checked)}),' Highlight (pulses)')));
    c.append($('div',{class:'row'},$('label',{class:'badge'},'Show from ',$('input',{type:'date',value:l.start||'',onchange:e=>change(()=>l.start=e.target.value)})),
     $('label',{class:'badge'},'until ',$('input',{type:'date',value:l.end||'',onchange:e=>change(()=>l.end=e.target.value)}))));
+   c.append($('label',{class:'badge'},'Show only to visitors from ',$('select',{style:'width:auto','aria-label':'Audience',onchange:e=>change(()=>l.only=e.target.value)},
+    [['','Everyone'],...Object.entries(SRCN).slice(0,8)].map(([v,n])=>$('option',{value:v,selected:(l.only||'')===v},n)))));
   }
   p.append(c);
  });
@@ -170,7 +195,59 @@ function lookTab(p){
    $('label',{class:'f'},'Font'),seg('font',[['sans','Sans'],['serif','Serif'],['mono','Mono'],['round','Rounded']])),
   $('div',{class:'card'},$('label',{class:'badge'},$('input',{type:'checkbox',checked:!!S.hideBrand,onchange:e=>change(()=>S.hideBrand=e.target.checked)}),' Hide the "Make your own Linkhub" footer')));
 }
-function profileTab(p){
+function accountCards(p){
+ const url=pubUrl();
+ const qr=$('div',{class:'card'},$('label',{class:'f'},'QR code for your page'),
+  $('img',{src:'https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=8&data='+encodeURIComponent(url),width:220,height:220,alt:'QR code for '+url,style:'background:#fff;border-radius:12px'}),
+  $('p',{class:'badge'},'Right-click or long-press to save it. Made by the free qrserver.com service, which only sees your public link.'));
+ const o=$('input',{type:'password',placeholder:'Current password',autocomplete:'current-password'}),n=$('input',{type:'password',placeholder:'New password (8+ characters)',autocomplete:'new-password'});
+ const act=async(path,body,ok)=>{try{const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)return toast(d.error||'Failed');ok()}catch(e){toast('Failed')}};
+ const acc=$('div',{class:'card'},$('label',{class:'f'},'Change password'),o,n,
+  $('button',{class:'btn',style:'margin-top:8px',onclick:()=>act('/api/password',{old:o.value,next:n.value},()=>{o.value=n.value='';toast('Password changed')})},'Change password'),
+  $('label',{class:'f',style:'margin-top:18px'},'Delete account'),
+  $('p',{class:'badge'},'This removes your page, links and subscribers for good.'),
+  $('button',{class:'btn del',onclick:()=>{const pw=prompt('Type your password to delete your account for good:');if(pw)act('/api/delete',{password:pw},()=>{location.href='/'})}},'Delete my account'));
+ p.append(qr,acc);
+}
+async function api(path,body){
+ const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})});
+ let d={};try{d=await r.json()}catch(e){}
+ if(!r.ok)throw new Error(d.error||'Something went wrong');return d;
+}
+function showImport(el,d){
+ el.replaceChildren();
+ if(!d.links.length){el.append($('p',{class:'badge'},'No links found on that page.'));return}
+ const norm=u=>(u||'').trim().toLowerCase().replace(/\/$/,''),have=new Set(S.links.map(l=>norm(l.url)));
+ const rows=d.links.map(l=>{const dup=have.has(norm(l.url));const cb=$('input',{type:'checkbox',checked:!dup});return{l,cb,row:$('label',{class:'row',style:'margin:4px 0'},cb,$('span',{},l.title+(dup?' (already added)':'')))}});
+ el.append($('p',{class:'badge'},`Found ${d.links.length} links. Untick any you don't want.`),...rows.map(r=>r.row),
+  $('button',{class:'btn pri',style:'margin-top:8px',onclick:()=>{const add=rows.filter(r=>r.cb.checked).map(r=>r.l);
+   add.forEach((l,i)=>S.links.push({id:Date.now().toString(36)+i,type:'link',title:l.title,url:l.url,on:true,clicks:0}));save();tab='links';render();toast(`Added ${add.length} links`)}},'Add selected links'));
+}
+function toolsTab(p){
+ const url=$('input',{type:'text',placeholder:'linktr.ee/yourname or any public link page'}),imp=$('div'),out=$('div',{style:'margin-top:10px'});
+ const about=$('textarea',{placeholder:'e.g. Chennai food blogger, street food reels, weekend travel',maxlength:300});
+ const run=async(ev,msg,fn)=>{const b=ev.currentTarget,o=b.textContent;b.disabled=true;b.textContent=msg;try{await fn()}catch(e){toast(e.message)}b.disabled=false;b.textContent=o};
+ const useBtn=(t,fn)=>$('button',{class:'btn sm',onclick:fn},t);
+ p.append(
+  $('div',{class:'card'},$('b',{},'Import from Linktree'),$('p',{class:'badge'},'Paste your public Linktree address. We copy your links and you choose which to add.'),url,
+   $('button',{class:'btn pri',style:'margin-top:8px',onclick:ev=>run(ev,'Reading…',async()=>showImport(imp,await api('/api/import',{url:url.value})))},'Find my links'),imp),
+  $('div',{class:'card'},$('b',{},'AI assistant'),$('p',{class:'badge'},'Powered by Claude. Your link titles and stats are sent to Anthropic to write suggestions. Nothing changes until you click Use.'),
+   $('label',{class:'f'},'Tell the AI about you (for the bio)'),about,
+   $('div',{class:'row',style:'margin-top:8px'},
+    $('button',{class:'btn',onclick:ev=>run(ev,'Writing…',async()=>{const d=await api('/api/ai',{task:'bio',about:about.value});
+     out.replaceChildren(...d.options.map(t=>$('div',{class:'row',style:'margin:6px 0;flex-wrap:nowrap'},$('span',{style:'flex:1'},t),useBtn('Use',()=>{change(()=>S.bio=t);toast('Bio updated')}))))})},'Write my bio'),
+    $('button',{class:'btn',onclick:ev=>run(ev,'Thinking…',async()=>{await new Promise(r=>setTimeout(r,700));const d=await api('/api/ai',{task:'titles'});
+     const ch=S.links.filter(l=>d.titles[l.id]&&d.titles[l.id]!==l.title);
+     if(!ch.length){out.replaceChildren($('p',{class:'badge'},'Your titles already look good.'));return}
+     out.replaceChildren(...ch.map(l=>$('div',{style:'margin:6px 0'},$('span',{class:'badge'},l.title+' → '),$('b',{},d.titles[l.id]))),
+      useBtn('Use all',()=>{ch.forEach(l=>l.title=d.titles[l.id]);save();render();toast('Titles updated')}))})},'Improve link titles'),
+    $('button',{class:'btn',onclick:ev=>run(ev,'Analyzing…',async()=>{await new Promise(r=>setTimeout(r,700));const d=await api('/api/ai',{task:'insights'});
+     out.replaceChildren(...d.tips.map(t=>$('p',{style:'margin:6px 0'},'• '+t)))})},'Get growth tips')),out),
+  $('div',{class:'card'},$('b',{},'Your data is yours'),$('p',{class:'badge'},'Download a full backup of your profile, links and subscribers any time.'),
+   $('a',{class:'btn',href:'/api/export'},'Download backup (JSON)')));
+}
+function profileTab(p){profileTab0(p);accountCards(p)}
+function profileTab0(p){
  const inp=(k,ph,max)=>$('input',{type:'text',placeholder:ph||'',value:S[k]||'',maxlength:max,oninput:e=>change(()=>S[k]=e.target.value)});
  const soc=$('div',{class:'card'},$('label',{class:'f'},'Social icons (shown under your bio)'));
  Object.entries(SOCIALS).forEach(([k,v])=>soc.append($('div',{},$('label',{class:'f'},v[1]),$('input',{type:'text',placeholder:v[2],value:S.socials[k]||'',maxlength:100,oninput:e=>change(()=>S.socials[k]=e.target.value)}))));
@@ -186,9 +263,8 @@ function audTab(p){
    $('div',{style:'margin-top:12px'},$('a',{class:'btn',href:'/api/subs.csv'},'Download list (CSV)'))));
 }
 async function refreshStats(){
- try{const r=await fetch('/api/me');const d=await r.json();S.views=d.views;S.daily=d.daily||{};S.subsCount=d.subsCount||0;
-  d.links.forEach(n=>{const l=S.links.find(x=>x.id===n.id);if(l)l.clicks=n.clicks});
-  if(tab==='stats'||tab==='aud')renderMain()}catch(e){}
+ try{const r=await fetch('/api/me');const d=await r.json();const before=JSON.stringify(S.links.map(l=>l.health));merge(d);
+  if(tab==='stats'||tab==='aud'||(tab==='links'&&before!==JSON.stringify(S.links.map(l=>l.health))))renderMain()}catch(e){}
 }
 function statsTab(p){
  const ls=S.links.filter(l=>l.type!=='heading'&&l.type!=='video');
@@ -205,10 +281,20 @@ function statsTab(p){
  const l2=$('div',{class:'card'},$('label',{class:'f'},'Clicks per link'));
  if(!ls.length)l2.append($('div',{class:'empty'},'No links to track yet.'));
  ls.forEach(l=>l2.append($('div',{style:'padding:8px 0'},$('div',{class:'row',style:'justify-content:space-between;flex-wrap:nowrap'},$('span',{},l.title||'Untitled'),$('b',{},String(l.clicks||0))),$('div',{class:'bar',style:`width:${(l.clicks||0)/mx*100}%`}))));
- p.append(c,w,l2);
+ const sr=Object.entries(S.src||{}).sort((a,b)=>b[1].v-a[1].v),sm=Math.max(1,...sr.map(x=>x[1].v));
+ const sc=$('div',{class:'card'},$('label',{class:'f'},'Where visitors come from'));
+ if(!sr.length)sc.append($('div',{class:'empty'},'Sources appear after your first visits.'));
+ sr.forEach(([k,e])=>sc.append($('div',{style:'padding:6px 0'},$('div',{class:'row',style:'justify-content:space-between;flex-wrap:nowrap'},$('span',{},SRCN[k]||k),$('span',{class:'badge'},`${e.v} views · ${e.c} clicks · ${e.v?Math.round(e.c/e.v*100):0}%`)),$('div',{class:'bar',style:`width:${e.v/sm*100}%`}))));
+ const tips=[];
+ if(sr.length&&S.views>=5)tips.push(`${SRCN[sr[0][0]]||sr[0][0]} sends the most visitors (${Math.round(sr[0][1].v/S.views*100)}%).`);
+ const top=[...ls].sort((a,b)=>(b.clicks||0)-(a.clicks||0))[0];if(top&&top.clicks)tips.push(`"${top.title}" is your most clicked link.`);
+ const dead=ls.filter(l=>l.health&&l.health.s==='bad').length;if(dead)tips.push(`${dead} broken link${dead>1?'s need':' needs'} fixing.`);
+ const never=ls.filter(l=>l.on&&l.title&&!l.clicks).length;if(S.views>=20&&never)tips.push(`${never} link${never>1?'s have':' has'} had no clicks. Try moving ${never>1?'them':'it'} higher or renaming.`);
+ p.append(c,sc,w,l2);
+ if(tips.length)p.append($('div',{class:'card'},$('label',{class:'f'},'Insights'),tips.map(t=>$('p',{style:'margin:6px 0'},'• '+t))));
 }
 (async()=>{
- try{const r=await fetch('/api/me');if(r.status===401){location.href='/';return}S=await r.json();S.fill=S.fill||'solid';S.shape=S.shape||'pill';S.socials=S.socials||{};S.custom=S.custom||{bg:'#ffffff',txt:'#111111',btn:'#111111',bt:'#ffffff'};S.font=S.font||'sans';S.photo=S.photo||'';render()}
+ try{const r=await fetch('/api/me');if(r.status===401){location.href='/';return}S=await r.json();S.fill=S.fill||'solid';S.shape=S.shape||'pill';S.socials=S.socials||{};S.custom=S.custom||{bg:'#ffffff',txt:'#111111',btn:'#111111',bt:'#ffffff'};S.autoHide=!!S.autoHide;S.font=S.font||'sans';S.photo=S.photo||'';render()}
  catch(e){document.getElementById('root').textContent='Could not load. Refresh the page.'}
 })();
 </script>
